@@ -12,6 +12,8 @@ https://docs.djangoproject.com/en/3.2/ref/settings/
 
 from pathlib import Path
 from decouple import config
+import os
+from celery.schedules import crontab
 
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -27,7 +29,7 @@ SECRET_KEY = config('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config('DEBUG')
 
-ALLOWED_HOSTS = [config('HOST'),]
+ALLOWED_HOSTS = [config('HOST'), 'https://peaceful-everglades-61576.herokuapp.com/']
 
 
 # Application definition
@@ -41,6 +43,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     # lib apps
     'rest_framework',
+    'rest_framework_swagger',
+    'django_celery_beat',
     # custom apps
     'posts'
 ]
@@ -69,6 +73,9 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
             ],
+            'libraries': {
+                    'staticfiles': 'django.templatetags.static',
+                 },
         },
     },
 ]
@@ -90,6 +97,7 @@ DATABASES = {
     }
 }
 
+REST_FRAMEWORK = {'DEFAULT_SCHEMA_CLASS': 'rest_framework.schemas.coreapi.AutoSchema'}
 
 # Password validation
 # https://docs.djangoproject.com/en/3.2/ref/settings/#auth-password-validators
@@ -123,12 +131,27 @@ USE_L10N = True
 
 USE_TZ = True
 
+# CELERY STUFF
+BROKER_URL = 'redis://localhost:6379'
+CELERY_RESULT_BACKEND = 'redis://localhost:6379'
+CELERY_ACCEPT_CONTENT = ['application/json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = 'Asia/Kyrgyzstan'
+
+CELERY_BEAT_SCHEDULE = {
+    'task-number-one': {
+        'task': 'posts.tasks.task_reset_upvotes',
+        'schedule': crontab(minute=00, hour=00)
+    }
+}
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/3.2/howto/static-files/
 
 STATIC_URL = '/static/'
-
+STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
+STATIC_ROOT = os.path.join(BASE_DIR, 'static_root')
 # Default primary key field type
 # https://docs.djangoproject.com/en/3.2/ref/settings/#default-auto-field
 
